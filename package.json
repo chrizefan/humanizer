@@ -6,7 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "db:setup": "./scripts/setup-database.sh",
+    "test:health": "node tests/health-check.js",
+    "test:suite": "node tests/auth-test-suite.js",
+    "test:auth": "node tests/auth-test-suite.js",
+    "test:trigger": "node tests/test-trigger-fix.js",
+    "test:full": "node tests/comprehensive-test.js",
+    "test:noconfirm": "node tests/test-no-confirmation.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -48,6 +58,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.5.0",
     "embla-carousel-react": "^8.3.0",
     "eslint": "8.49.0",
     "eslint-config-next": "13.5.1",

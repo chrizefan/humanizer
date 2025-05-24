@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CircleDollarSign } from "lucide-react";
-import { getUserCredits } from "@/lib/supabase";
+import { useCredits } from "@/hooks/use-credits";
 import { Skeleton } from "@/components/ui/skeleton";
 import { calculateCharactersPerCredit } from "@/lib/pricing";
 
@@ -12,28 +12,19 @@ interface CreditCounterProps {
 }
 
 export default function CreditCounter({ className, showDetails = false }: CreditCounterProps) {
-  const [credits, setCredits] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { credits, usageStats, loading: isLoading, error, fetchCredits } = useCredits();
 
   useEffect(() => {
-    const fetchCredits = async () => {
-      try {
-        const userCredits = await getUserCredits();
-        setCredits(userCredits);
-      } catch (error) {
-        console.error("Error fetching user credits:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
+    // Fetch credits when component mounts
     fetchCredits();
     
     // Set up interval to refresh credits every 30 seconds
-    const interval = setInterval(fetchCredits, 30000);
+    const interval = setInterval(() => {
+      fetchCredits();
+    }, 30000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchCredits]);
 
   if (isLoading) {
     return (
@@ -45,7 +36,7 @@ export default function CreditCounter({ className, showDetails = false }: Credit
   }
 
   // Calculate character estimate
-  const characterEstimate = credits !== null ? calculateCharactersPerCredit(credits) : 0;
+  const characterEstimate = credits ? calculateCharactersPerCredit(credits) : 0;
 
   return (
     <div className={`flex flex-col ${className}`}>

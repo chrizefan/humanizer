@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Sparkles, Copy, Check, Save, Trash } from "lucide-react";
+import { Sparkles, Copy, Check, Save, Trash, Clipboard } from "lucide-react";
+import { motion } from "framer-motion";
 import { humanizeText } from "@/lib/humanizer";
 import { getUserCredits, updateUserCredits, saveProject, logUsage } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +29,7 @@ export default function TextEditor({ initialInput = "", initialOutput = "", titl
   const [isHumanizing, setIsHumanizing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isPasting, setIsPasting] = useState(false);
   const [userCredits, setUserCredits] = useState<number | null>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -182,115 +184,157 @@ export default function TextEditor({ initialInput = "", initialOutput = "", titl
     });
   };
   
+  // Handle paste from clipboard
+  const handlePasteFromClipboard = async () => {
+    try {
+      setIsPasting(true);
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setInputText(text);
+        toast({
+          title: "Text pasted",
+          description: "Text has been pasted from clipboard.",
+        });
+      } else {
+        toast({
+          title: "Nothing to paste",
+          description: "Clipboard is empty or does not contain text.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to read clipboard:", error);
+      toast({
+        title: "Paste failed",
+        description: "Failed to read from clipboard. Please check browser permissions.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPasting(false);
+    }
+  };
+  
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
       {/* Input Panel */}
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between mb-2">
-          <Label htmlFor="input-text" className="text-lg font-medium">Input Text</Label>
-          <div className="flex gap-2">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="tone" className="text-xs text-gray-500">Tone</Label>
-              <Select value={tone} onValueChange={(value: any) => setTone(value)}>
-                <SelectTrigger id="tone" className="w-[130px] h-8">
-                  <SelectValue placeholder="Select tone" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="professional">Professional</SelectItem>
-                  <SelectItem value="casual">Casual</SelectItem>
-                  <SelectItem value="friendly">Friendly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="length" className="text-xs text-gray-500">Length</Label>
-              <Select value={length} onValueChange={(value: any) => setLength(value)}>
-                <SelectTrigger id="length" className="w-[130px] h-8">
-                  <SelectValue placeholder="Select length" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="short">Short</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="long">Long</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+      <motion.div 
+        className="flex flex-col"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ 
+          opacity: 1, 
+          x: 0,
+          transition: { duration: 0.6, delay: 0.1 }
+        }}
+      >
+        <div className="flex items-center justify-between h-14">
+          <Label htmlFor="input-text" className="text-xl font-medium text-gray-700 dark:text-gray-300">AI-Generated Text</Label>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePasteFromClipboard}
+            disabled={isPasting}
+            className="h-10 px-3 rounded-lg text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+          >
+            {isPasting ? (
+              <>
+                <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                Pasting...
+              </>
+            ) : (
+              <>
+                <Clipboard className="h-4 w-4 mr-2" />
+                Paste
+              </>
+            )}
+          </Button>
         </div>
-        <Textarea
-          id="input-text"
-          placeholder="Enter your text here to humanize..."
-          className="flex-1 min-h-[300px] resize-none p-4"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-        />
+        <div className="flex-1">
+          <Textarea
+            id="input-text"
+            placeholder="Paste your AI-generated text here..."
+            className="h-[250px] w-full resize-none p-6 text-base rounded-xl border-gray-200 dark:border-gray-700 shadow-sm bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+          />
+        </div>
         <div className="flex justify-between items-center mt-4">
-          <div className="text-sm text-gray-500">
+          <div className="text-sm px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-full text-gray-500 dark:text-gray-300 shadow-sm font-medium">
             {inputText.length} characters
           </div>
           <div className="flex gap-2">
             <Button 
               variant="outline" 
-              size="sm" 
+              size="sm"
               onClick={handleClear}
               disabled={isHumanizing || !inputText}
+              className="h-12 px-4 rounded-lg text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
             >
-              <Trash className="h-4 w-4 mr-2" />
+              <Trash className="h-5 w-5 mr-2" />
               Clear
             </Button>
             <Button 
               onClick={handleHumanize} 
               disabled={isHumanizing || !inputText || userCredits === 0}
-              className="bg-[#4A90E2] hover:bg-[#3A80D2]"
+              className="h-12 px-6 text-base rounded-lg font-medium bg-gradient-to-br from-[#4A90E2] via-[#4F7AE0] to-[#5A6ACF] hover:from-[#3A80D2] hover:to-[#4A5ABF] shadow-lg transition-all"
             >
               {isHumanizing ? (
                 <>
-                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                  <div className="animate-spin mr-2 h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
                   Humanizing...
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4 mr-2" />
+                  <Sparkles className="h-5 w-5 mr-2" />
                   Humanize
                 </>
               )}
             </Button>
           </div>
         </div>
-      </div>
+      </motion.div>
       
       {/* Output Panel */}
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between mb-2">
-          <Label htmlFor="output-text" className="text-lg font-medium">Humanized Result</Label>
+      <motion.div 
+        className="flex flex-col"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ 
+          opacity: 1, 
+          x: 0,
+          transition: { duration: 0.6, delay: 0.1 }
+        }}
+      >
+        <div className="flex items-center justify-between h-14">
+          <Label htmlFor="output-text" className="text-xl font-medium text-gray-700 dark:text-gray-300">Humanized Result</Label>
           <div className="flex gap-2">
             <input
               type="text"
               value={projectTitle}
               onChange={(e) => setProjectTitle(e.target.value)}
               placeholder="Project title"
-              className="h-8 px-3 py-1 text-sm rounded-md border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#4A90E2] focus:border-transparent"
+              className="h-10 px-4 py-1 text-sm rounded-lg border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#4A90E2] focus:border-transparent bg-white dark:bg-gray-800"
             />
           </div>
         </div>
-        <div 
-          ref={outputRef}
-          className={cn(
-            "flex-1 min-h-[300px] p-4 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-auto",
-            !outputText && "flex items-center justify-center text-gray-400"
-          )}
-        >
-          {outputText ? (
-            <div className="whitespace-pre-wrap">{outputText}</div>
-          ) : (
-            <div className="text-center">
-              <Sparkles className="h-12 w-12 mx-auto mb-2 opacity-20" />
-              <p>Humanized text will appear here</p>
-            </div>
-          )}
+        <div className="flex-1">
+          <div 
+            ref={outputRef}
+            className={cn(
+              "h-[250px] w-full p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 overflow-auto text-base shadow-sm",
+              !outputText && "flex items-center justify-center text-gray-400"
+            )}
+          >
+            {outputText ? (
+              <div className="whitespace-pre-wrap">{outputText}</div>
+            ) : (
+              <div className="text-center">
+                <Sparkles className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                <p>Humanized text will appear here</p>
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex justify-between items-center mt-4">
-          <div className="text-sm text-gray-500">
+          <div className="text-sm px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-full text-gray-500 dark:text-gray-300 shadow-sm font-medium">
             {outputText.length} characters
           </div>
           <div className="flex gap-2">
@@ -299,15 +343,16 @@ export default function TextEditor({ initialInput = "", initialOutput = "", titl
               size="sm" 
               onClick={handleCopy}
               disabled={!outputText}
+              className="h-12 px-4 rounded-lg text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
             >
               {isCopied ? (
                 <>
-                  <Check className="h-4 w-4 mr-2" />
+                  <Check className="h-5 w-5 mr-2" />
                   Copied
                 </>
               ) : (
                 <>
-                  <Copy className="h-4 w-4 mr-2" />
+                  <Copy className="h-5 w-5 mr-2" />
                   Copy
                 </>
               )}
@@ -317,23 +362,23 @@ export default function TextEditor({ initialInput = "", initialOutput = "", titl
               disabled={isSaving || !outputText}
               variant="outline"
               size="sm"
-              className="border-[#4A90E2] text-[#4A90E2] hover:bg-[#4A90E2] hover:text-white"
+              className="h-12 px-4 rounded-lg font-medium bg-gradient-to-br from-[#4A90E2] via-[#4F7AE0] to-[#5A6ACF] hover:from-[#3A80D2] hover:to-[#4A5ABF] text-white border-none shadow-lg transition-all"
             >
               {isSaving ? (
                 <>
-                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                  <div className="animate-spin mr-2 h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
                   Saving...
                 </>
               ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className="h-5 w-5 mr-2" />
                   Save
                 </>
               )}
             </Button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

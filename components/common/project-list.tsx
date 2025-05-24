@@ -2,62 +2,73 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { getUserProjects } from "@/lib/supabase";
+import { useProjects } from "@/hooks/use-projects";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Project } from "@/types";
 import { ChevronLeft, ChevronRight, Clock, Trash, Edit } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+
+interface Project {
+  id: string;
+  title: string;
+  input_text: string;
+  output_text: string;
+  created_at: string;
+}
 
 interface ProjectListProps {
   className?: string;
 }
 
 export default function ProjectList({ className }: ProjectListProps) {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [totalProjects, setTotalProjects] = useState(0);
   const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
   const pageSize = 5;
   const router = useRouter();
   const { toast } = useToast();
+  const { projects, pagination, loading: isLoading, error, fetchProjects, deleteProject } = useProjects();
 
   useEffect(() => {
-    fetchProjects();
-  }, [page]);
+    fetchProjects({ page, pageSize });
+  }, [page, fetchProjects]);
 
-  const fetchProjects = async () => {
-    setIsLoading(true);
-    try {
-      const { data, count } = await getUserProjects(page, pageSize);
-      setProjects(data as Project[]);
-      setTotalProjects(count);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
+  useEffect(() => {
+    if (error) {
       toast({
         title: "Error fetching projects",
-        description: "Could not load your projects. Please try again.",
+        description: error,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [error, toast]);
 
-  const totalPages = Math.ceil(totalProjects / pageSize);
+  const totalPages = pagination?.totalPages || 1;
+  const totalProjects = pagination?.total || 0;
 
   const handleEditProject = (project: Project) => {
     router.push(`/dashboard/edit/${project.id}`);
   };
 
-  // Placeholder for delete functionality
   const handleDeleteProject = async (project: Project) => {
-    toast({
-      title: "Delete project",
-      description: "This feature is not implemented in the demo.",
-    });
+    try {
+      const result = await deleteProject(project.id);
+      
+      if (result.success) {
+        toast({
+          title: "Project deleted",
+          description: "Your project has been deleted successfully.",
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Delete failed",
+        description: error.message || "Failed to delete project",
+        variant: "destructive",
+      });
+    }
   };
 
   // Generate skeleton cards for loading state

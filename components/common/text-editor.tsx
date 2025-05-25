@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Sparkles, Copy, Check, Save, Trash, Clipboard } from "lucide-react";
+import { Sparkles, Copy, Check, Save, Trash, Clipboard, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { humanizeText } from "@/lib/humanizer";
 import { updateUserCredits, saveProject, logUsage } from "@/lib/supabase";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useCredits } from "@/hooks/use-credits";
 import { useGuestCredits } from "@/hooks/use-guest-credits";
@@ -20,6 +21,10 @@ import styles from "./text-editor.module.css";
 import { SaveProjectDialog } from "./save-project-dialog";
 import { GuestCreditsExhaustedDialog } from "./guest-credits-exhausted-dialog";
 import { useProjectListRefresh } from "@/hooks/use-project-list-refresh";
+
+// Character validation constants
+const MIN_CHARACTERS = 50;
+const MAX_CHARACTERS = 15000;
 
 interface TextEditorProps {
   initialInput?: string;
@@ -89,12 +94,49 @@ export default function TextEditor({ initialInput = "", initialOutput = "", titl
   useEffect(() => {
     fetchCredits();
   }, [fetchCredits]);
+
+  // Character validation helpers
+  const getCharacterCountColor = (count: number) => {
+    if (count < MIN_CHARACTERS) return "text-red-500";
+    if (count > MAX_CHARACTERS) return "text-red-500";
+    return "text-green-600";
+  };
+
+  const getCharacterValidationMessage = (count: number) => {
+    if (count === 0) return "Enter text to begin";
+    if (count < MIN_CHARACTERS) return `Minimum ${MIN_CHARACTERS} characters required (${MIN_CHARACTERS - count} more needed)`;
+    if (count > MAX_CHARACTERS) return `Text too long (${count - MAX_CHARACTERS} characters over limit)`;
+    return `${count} characters - ready to humanize`;
+  };
+
+  const isCharacterCountValid = (count: number) => {
+    return count >= MIN_CHARACTERS && count <= MAX_CHARACTERS;
+  };
    // Handle humanize button click
   const handleHumanize = async () => {
     if (!inputText.trim()) {
       toast({
         title: "No text to humanize",
         description: "Please enter some text to humanize.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Character validation
+    if (inputText.length < MIN_CHARACTERS) {
+      toast({
+        title: "Text too short",
+        description: `Please enter at least ${MIN_CHARACTERS} characters. You need ${MIN_CHARACTERS - inputText.length} more characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (inputText.length > MAX_CHARACTERS) {
+      toast({
+        title: "Text too long",
+        description: `Please reduce your text to ${MAX_CHARACTERS} characters or less. You have ${inputText.length - MAX_CHARACTERS} extra characters.`,
         variant: "destructive",
       });
       return;

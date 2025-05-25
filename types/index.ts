@@ -61,4 +61,37 @@ export interface HumanizeRequest {
   text: string;
   tone?: 'professional' | 'casual' | 'friendly';
   length?: 'short' | 'medium' | 'long';
+  readability?: 'High School' | 'University' | 'Doctorate' | 'Journalist' | 'Marketing';
+  purpose?: 'General Writing' | 'Essay' | 'Article' | 'Marketing Material' | 'Story' | 'Cover Letter' | 'Report' | 'Business Material' | 'Legal Material';
+  strength?: 'Quality' | 'Balanced' | 'More Human';
+}
+
+// Undetectable AI API Types
+export interface UndetectableSubmitRequest {
+  content: string;
+  readability: string;
+  purpose: string;
+  strength?: string;
+  model?: string;
+}
+
+export interface UndetectableSubmitResponse {
+  status: string;
+  id: string;
+}
+
+export interface UndetectableDocumentResponse {
+  id: string;
+  output?: string;
+  input: string;
+  readability: string;
+  purpose: string;
+  status?: string;
+  createdDate: string;
+}
+
+export interface UndetectableCreditsResponse {
+  baseCredits: number;
+  boostCredits: number;
+  credits: number;
 }

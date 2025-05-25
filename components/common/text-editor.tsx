@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Sparkles, Copy, Check, Save, Trash, Clipboard, AlertCircle } from "lucide-react";
+import { Sparkles, Copy, Check, Save, Trash, Clipboard, AlertCircle, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import { humanizeText } from "@/lib/humanizer";
 import { updateUserCredits, saveProject, logUsage } from "@/lib/supabase";
@@ -21,10 +21,31 @@ import styles from "./text-editor.module.css";
 import { SaveProjectDialog } from "./save-project-dialog";
 import { GuestCreditsExhaustedDialog } from "./guest-credits-exhausted-dialog";
 import { useProjectListRefresh } from "@/hooks/use-project-list-refresh";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Character validation constants
 const MIN_CHARACTERS = 50;
 const MAX_CHARACTERS = 15000;
+
+// Readability and purpose options for dropdowns
+const READABILITY_OPTIONS = [
+  "High School",
+  "University",
+  "Doctorate",
+  "Journalist",
+  "Marketing"
+];
+const PURPOSE_OPTIONS = [
+  "General Writing",
+  "Essay",
+  "Article",
+  "Marketing Material",
+  "Story",
+  "Cover Letter",
+  "Report",
+  "Business Material",
+  "Legal Material"
+];
 
 interface TextEditorProps {
   initialInput?: string;
@@ -45,6 +66,9 @@ export default function TextEditor({ initialInput = "", initialOutput = "", titl
   const [outputHeight, setOutputHeight] = useState(400);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isCreditsExhaustedDialogOpen, setCreditsExhaustedDialogOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [readability, setReadability] = useState("University");
+  const [purpose, setPurpose] = useState("General Writing");
   const outputRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
@@ -168,6 +192,8 @@ export default function TextEditor({ initialInput = "", initialOutput = "", titl
         text: inputText,
         tone,
         length,
+        readability: readability as HumanizeRequest["readability"],
+        purpose: purpose as HumanizeRequest["purpose"],
       };
       
       const response = await humanizeText(params);
@@ -414,28 +440,49 @@ export default function TextEditor({ initialInput = "", initialOutput = "", titl
           </Button>
         </div>
         <div className="flex-1 min-h-0 mb-4">
-          <Textarea
-            ref={inputRef}
-            id="input-text"
-            placeholder={
-              !user && guestCredits === 0 
-                ? "Guest trial expired. Please sign up or log in to continue..." 
-                : "Paste your AI-generated text here..."
-            }
-            className={cn(
-              "w-full resize-none p-6 text-base rounded-xl border-gray-200 dark:border-gray-700 shadow-sm bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 overflow-auto",
-              styles.dynamicTextarea,
-              !user && guestCredits === 0 && "opacity-50 cursor-not-allowed"
-            )}
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            disabled={!user && guestCredits === 0}
-          />
+          <div className="relative">
+            <Textarea
+              ref={inputRef}
+              id="input-text"
+              placeholder={
+                !user && guestCredits === 0 
+                  ? "Guest trial expired. Please sign up or log in to continue..." 
+                  : "Paste your AI-generated text here..."
+              }
+              className={cn(
+                "w-full resize-none p-6 text-base rounded-xl border-gray-200 dark:border-gray-700 shadow-sm bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 overflow-auto",
+                styles.dynamicTextarea,
+                !user && guestCredits === 0 && "opacity-50 cursor-not-allowed"
+              )}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              disabled={!user && guestCredits === 0}
+            />
+          </div>
         </div>
         <div className="flex justify-between items-center flex-shrink-0 h-16">
-          <div className="text-sm px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-full text-gray-500 dark:text-gray-300 shadow-sm font-medium">
-            {inputText.length} characters
-          </div>
+          {/* Character counter with tooltip */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className={cn(
+                    "text-sm px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-full shadow-sm font-medium flex items-center gap-2 transition-colors duration-200",
+                    inputText.length < MIN_CHARACTERS && inputText.length > 0
+                      ? "text-red-500 cursor-help"
+                      : "text-gray-500 dark:text-gray-300"
+                  )}
+                >
+                  {inputText.length} characters
+                </div>
+              </TooltipTrigger>
+              {inputText.length < MIN_CHARACTERS && inputText.length > 0 && (
+                <TooltipContent side="top">
+                  <span>{MIN_CHARACTERS - inputText.length} more chars needed</span>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
           <div className="flex gap-2">
             <Button 
               variant="outline" 
@@ -447,9 +494,54 @@ export default function TextEditor({ initialInput = "", initialOutput = "", titl
               <Trash className="h-5 w-5 mr-2" />
               Clear
             </Button>
+            <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 flex items-center justify-center border-gray-300 dark:border-gray-600"
+                  aria-label="Humanizer Settings"
+                >
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-4" align="start">
+                <div className="mb-4">
+                  <Label className="block mb-1">Readability</Label>
+                  <Select value={readability} onValueChange={setReadability}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select readability" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {READABILITY_OPTIONS.map(opt => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="block mb-1">Purpose</Label>
+                  <Select value={purpose} onValueChange={setPurpose}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select purpose" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PURPOSE_OPTIONS.map(opt => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button 
               onClick={handleHumanize} 
-              disabled={isHumanizing || !inputText || (user ? userCredits === 0 : !hasGuestCredits)}
+              disabled={
+                isHumanizing ||
+                !inputText ||
+                inputText.length < MIN_CHARACTERS ||
+                (user ? userCredits === 0 : !hasGuestCredits)
+              }
               className="h-12 px-6 text-base rounded-lg font-medium bg-gradient-to-br from-[#4A90E2] via-[#4F7AE0] to-[#5A6ACF] hover:from-[#3A80D2] hover:to-[#4A5ABF] shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isHumanizing ? (

@@ -111,8 +111,8 @@ export const submitToUndetectable = async (request: HumanizeRequest): Promise<Un
   // Build the request according to the API documentation
   const submitRequest = {
     content: request.text,
-    readability: mapReadability(request.readability),
-    purpose: mapPurpose(request.purpose),
+    readability: mapReadability(request.readability || 'University'),
+    purpose: mapPurpose(request.purpose || 'General Writing'),
     strength: mapStrength(request.strength),
     model: 'v2' // Default model as per documentation
   };

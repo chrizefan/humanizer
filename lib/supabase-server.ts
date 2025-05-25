@@ -1,31 +1,40 @@
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { Database } from '@/types/supabase';
 
-// Define constants for Supabase configuration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-// Check if required environment variables are present
-if (!supabaseUrl) {
-  throw new Error(
-    'NEXT_PUBLIC_SUPABASE_URL is not defined. Please add it to your .env.local file'
+// Helper function to create server-side Supabase client with cookies
+export function createServerSupabaseClient() {
+  const cookieStore = cookies();
+  
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    }
   );
 }
 
-if (!supabaseAnonKey) {
-  throw new Error(
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY is not defined. Please add it to your .env.local file'
-  );
-}
-
-// Initialize the Supabase client (for client-side use)
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
-
-// Helper function to get the current user (client-side)
+// Helper function to get the current user (server-side)
 export async function getUser() {
   try {
+    const supabase = createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
-    console.log('getUser function called, returned user ID:', user?.id);
     return user;
   } catch (error) {
     console.error('Error getting user:', error);
@@ -41,6 +50,7 @@ export async function isAuthenticated() {
 
 // Helper function to sign out the user
 export async function signOut() {
+  const supabase = createServerSupabaseClient();
   const { error } = await supabase.auth.signOut();
   if (error) {
     console.error('Error signing out:', error);
@@ -60,12 +70,14 @@ export async function getUserCredits() {
   // Add logging to debug
   console.log('getUserCredits: Fetching credits for user:', user.id, user.email);
   
-  // Use client-side supabase instance
+  // Use server-side client with cookies
+  const supabase = createServerSupabaseClient();
+  
   const { data, error } = await supabase
     .from('users')
     .select('credits_remaining')
     .eq('id', user.id)
-    .maybeSingle(); // Using maybeSingle instead of single to avoid header issues
+    .maybeSingle(); // Changed from single() to avoid header issues
     
   // Log the response
   console.log('getUserCredits: Database response:', { data, error });
@@ -90,6 +102,8 @@ export async function updateUserCredits(newCreditAmount: number) {
   
   if (!user) return { success: false };
   
+  const supabase = createServerSupabaseClient();
+  
   const { error } = await supabase
     .from('users')
     .update({ credits_remaining: newCreditAmount })
@@ -102,20 +116,9 @@ export async function updateUserCredits(newCreditAmount: number) {
 export async function saveProject(title: string, inputText: string, outputText: string) {
   const user = await getUser();
   
-  console.log('saveProject called with user:', user?.id, 'email:', user?.email);
+  if (!user) return { success: false };
   
-  if (!user) {
-    console.error('saveProject: No authenticated user found');
-    return { success: false };
-  }
-  
-  // Get additional session info for debugging
-  const { data: { session } } = await supabase.auth.getSession();
-  console.log('saveProject: Current session user ID:', session?.user?.id);
-  
-  // Skip user validation - auth middleware already handles authentication
-  
-  console.log('saveProject: User validation skipped');
+  const supabase = createServerSupabaseClient();
   
   const { data, error } = await supabase
     .from('projects')
@@ -126,19 +129,6 @@ export async function saveProject(title: string, inputText: string, outputText: 
       output_text: outputText
     })
     .select();
-  
-  console.log('Project saved result:', { data, error });
-  
-  // Check if we can immediately retrieve the project we just saved
-  if (data && data[0]?.id) {
-    const { data: verifyData, error: verifyError } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('id', data[0].id)
-      .maybeSingle();
-      
-    console.log('Verification of saved project:', { verifyData, verifyError });
-  }
     
   return { 
     success: !error,
@@ -151,6 +141,8 @@ export async function logUsage(projectId: string, creditsUsed: number) {
   const user = await getUser();
   
   if (!user) return { success: false };
+  
+  const supabase = createServerSupabaseClient();
   
   const { error } = await supabase
     .from('usage_logs')
@@ -169,43 +161,30 @@ export async function getUserProjects(page = 1, pageSize = 10) {
   
   if (!user) return { data: [], count: 0 };
   
+  const supabase = createServerSupabaseClient();
+  
   // Calculate pagination
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
   
-  try {
-    // Get total count
-    const { count, error: countError } = await supabase
-      .from('projects')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-      
-    if (countError) {
-      console.error('Error getting project count:', countError);
-      return { data: [], count: 0 };
-    }
+  // Get total count
+  const { count, error: countError } = await supabase
+    .from('projects')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
     
-    // Get paginated data
-    const { data, error } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .range(from, to);
-      
-    if (error) {
-      console.error('Error fetching projects:', error);
-      return { data: [], count: count || 0 };
-    }
+  // Get paginated data
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .range(from, to);
     
-    return { 
-      data: data || [],
-      count: count || 0
-    };
-  } catch (err) {
-    console.error('Unexpected error in getUserProjects:', err);
-    return { data: [], count: 0 };
-  }
+  return { 
+    data: data || [],
+    count: count || 0
+  };
 }
 
 // Helper function to get a single project by ID
@@ -213,6 +192,8 @@ export async function getProjectById(projectId: string) {
   const user = await getUser();
   
   if (!user) return { data: null };
+  
+  const supabase = createServerSupabaseClient();
   
   const { data, error } = await supabase
     .from('projects')
@@ -239,6 +220,8 @@ export async function updateProject(projectId: string, updates: Partial<{
   
   if (!user) return { success: false };
   
+  const supabase = createServerSupabaseClient();
+  
   const { error } = await supabase
     .from('projects')
     .update(updates)
@@ -254,6 +237,8 @@ export async function deleteProject(projectId: string) {
   
   if (!user) return { success: false };
   
+  const supabase = createServerSupabaseClient();
+  
   const { error } = await supabase
     .from('projects')
     .delete()
@@ -268,6 +253,8 @@ export async function getUserUsageStats() {
   const user = await getUser();
   
   if (!user) return { data: null };
+  
+  const supabase = createServerSupabaseClient();
   
   // Get total credits used
   const { data: usageData, error: usageError } = await supabase
@@ -297,7 +284,7 @@ export async function getUserUsageStats() {
     return { data: null, error: new Error('User not found') };
   }
   
-  const totalUsed = usageData?.reduce((sum, log) => sum + log.credits_used, 0) || 0;
+  const totalUsed = usageData?.reduce((sum: number, log: any) => sum + log.credits_used, 0) || 0;
   
   return { 
     data: {
@@ -315,6 +302,8 @@ export async function updateUserSubscription(subscriptionTier: string) {
   
   if (!user) return { success: false };
   
+  const supabase = createServerSupabaseClient();
+  
   const { error } = await supabase
     .from('users')
     .update({ subscription_tier: subscriptionTier })
@@ -329,6 +318,8 @@ export async function getUserSubscription() {
   
   if (!user) return { data: null };
   
+  const supabase = createServerSupabaseClient();
+  
   const { data, error } = await supabase
     .from('users')
     .select('subscription_tier')
@@ -341,59 +332,4 @@ export async function getUserSubscription() {
   }
   
   return { data: data?.subscription_tier || 'free', error: null };
-}
-
-// Admin function to give credits to users without subscriptions
-export async function giveFreeCreditsToNonSubscribers(creditAmount: number = 10) {
-  // This requires service role permissions
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  
-  if (!supabaseServiceKey) {
-    throw new Error('Service role key not configured');
-  }
-  
-  const adminSupabase = createClient(supabaseUrl, supabaseServiceKey);
-  
-  // Get all free users
-  const { data: freeUsers, error: selectError } = await adminSupabase
-    .from('users')
-    .select('id, credits_remaining')
-    .eq('subscription_tier', 'free');
-  
-  if (selectError) {
-    throw new Error(`Failed to fetch free users: ${selectError.message}`);
-  }
-  
-  if (!freeUsers || freeUsers.length === 0) {
-    return {
-      success: true,
-      usersUpdated: 0,
-      creditsAdded: creditAmount
-    };
-  }
-  
-  // Update each user individually
-  const updatePromises = freeUsers.map(user => 
-    adminSupabase
-      .from('users')
-      .update({ 
-        credits_remaining: user.credits_remaining + creditAmount,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', user.id)
-  );
-  
-  const updateResults = await Promise.all(updatePromises);
-  const failedUpdates = updateResults.filter(result => result.error);
-  
-  if (failedUpdates.length > 0) {
-    throw new Error(`${failedUpdates.length} updates failed`);
-  }
-  
-  return {
-    success: true,
-    usersUpdated: freeUsers.length,
-    creditsAdded: creditAmount
-  };
 }

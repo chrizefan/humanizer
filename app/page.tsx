@@ -207,10 +207,10 @@ export default function Home() {
       <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f0f4f9] via-white to-[#e8f0fe] dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative z-20 px-4 md:px-8 py-16">
         <motion.div
           style={editorStyle}
-          className="container mx-auto max-w-[1800px] w-full"
+          className="container mx-auto max-w-[1800px] w-full flex flex-col"
           id="editor-section"
         >
-          <div className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-sm rounded-2xl shadow-xl p-8 md:p-12 lg:p-16 border border-gray-100 dark:border-gray-800">
+          <div className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-sm rounded-2xl shadow-xl p-6 md:p-8 lg:p-12 border border-gray-100 dark:border-gray-800">
             <TextEditor />
           </div>
         </motion.div>

@@ -7,7 +7,7 @@ import { Menu, X, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
-import { getUser, signOut } from "@/lib/supabase";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { motion, useScroll } from "framer-motion";
 
 interface NavItem {
@@ -21,10 +21,11 @@ export default function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const { theme } = useTheme();
   const { scrollY } = useScroll();
+  
+  // Use the authentication hook
+  const { user, loading: isLoading, signOut } = useSupabaseAuth();
 
   const navigation: NavItem[] = [
     { name: "Home", href: "/" },
@@ -33,16 +34,6 @@ export default function Navbar() {
     { name: "Contact", href: "/contact" },
     { name: "Login", href: "/auth", guest: true },
   ];
-
-  useEffect(() => {
-    const checkUser = async () => {
-      const currentUser = await getUser();
-      setUser(currentUser);
-      setIsLoading(false);
-    };
-    
-    checkUser();
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -165,7 +156,6 @@ export default function Navbar() {
               onClick={async () => {
                 try {
                   await signOut();
-                  setUser(null);
                   window.location.href = '/';
                 } catch (error) {
                   console.error('Sign out error:', error);
@@ -240,7 +230,6 @@ export default function Navbar() {
                     onClick={async () => {
                       try {
                         await signOut();
-                        setUser(null);
                         setMobileMenuOpen(false);
                         window.location.href = '/';
                       } catch (error) {

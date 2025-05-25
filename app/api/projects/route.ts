@@ -13,15 +13,18 @@ export async function GET(request: NextRequest) {
       // Fetch projects
       const { data, count } = await getUserProjects(page, pageSize);
       
+      // Calculate total pages (handle case where count is 0)
+      const totalPages = count > 0 ? Math.ceil(count / pageSize) : 1;
+      
       // Return successful response
       return NextResponse.json({
         success: true,
-        data,
+        data: data || [], // Ensure we always return an array, even if empty
         pagination: {
           page,
           pageSize,
-          total: count,
-          totalPages: Math.ceil(count / pageSize)
+          total: count || 0,
+          totalPages
         }
       });
     } catch (error) {

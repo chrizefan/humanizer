@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { useProjects } from "@/hooks/use-projects";
+import { useProjectContext } from "@/hooks/use-project-context";
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight, Clock, Trash, Edit } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useProjectListRefresh } from "@/hooks/use-project-list-refresh";
 
 interface Project {
   id: string;
@@ -27,19 +29,47 @@ export default function ProjectList({ className }: ProjectListProps) {
   const pageSize = 5;
   const router = useRouter();
   const { toast } = useToast();
-  const { projects, pagination, loading: isLoading, error, fetchProjects, deleteProject } = useProjects();
+  const { user, loading: authLoading } = useSupabaseAuth();
+  const { projects, pagination, loading: isLoading, error, preloaded, fetchProjects, deleteProject, refreshProjects } = useProjectContext();
+  const { refreshTrigger, triggerRefresh } = useProjectListRefresh();
 
   useEffect(() => {
-    fetchProjects({ page, pageSize });
-  }, [page, fetchProjects]);
+    // Only fetch projects when auth is ready and user is available
+    // Skip if projects are already preloaded
+    if (!authLoading && user && !preloaded) {
+      console.log('ProjectList - Fetching projects for user:', user.id);
+      fetchProjects({ page, pageSize });
+    } else if (preloaded) {
+      console.log('ProjectList - Projects already preloaded, skipping fetch');
+    }
+  }, [page, authLoading, user, preloaded, fetchProjects]); // Added fetchProjects back
+
+  // Refresh projects when refresh trigger changes
+  useEffect(() => {
+    if (refreshTrigger > 0 && !authLoading && user) {
+      console.log('ProjectList - Refresh triggered for user:', user.id, 'with refreshTrigger:', refreshTrigger);
+      console.log('ProjectList - User email:', user.email);
+      refreshProjects();
+    } else {
+      console.log('ProjectList - Refresh NOT triggered:', { 
+        refreshTrigger, 
+        authLoading, 
+        hasUser: !!user,
+        userId: user?.id
+      });
+    }
+  }, [refreshTrigger, authLoading, user]); // Removed refreshProjects from dependencies
 
   useEffect(() => {
     if (error) {
-      toast({
-        title: "Error fetching projects",
-        description: error,
-        variant: "destructive",
-      });
+      // Don't show errors related to "no projects found" which is normal
+      if (error !== 'No projects found') {
+        toast({
+          title: "Error fetching projects",
+          description: error,
+          variant: "destructive",
+        });
+      }
     }
   }, [error, toast]);
 
@@ -59,6 +89,8 @@ export default function ProjectList({ className }: ProjectListProps) {
           title: "Project deleted",
           description: "Your project has been deleted successfully.",
         });
+        // Trigger refresh to update the project list
+        triggerRefresh();
       } else {
         throw new Error(result.error);
       }
@@ -105,7 +137,7 @@ export default function ProjectList({ className }: ProjectListProps) {
               <>
                 Showing {Math.min((page - 1) * pageSize + 1, totalProjects)} - {Math.min(page * pageSize, totalProjects)} of {totalProjects}
               </>
-            ) : isLoading ? (
+            ) : authLoading || isLoading ? (
               <Skeleton className="h-4 w-32" />
             ) : (
               "No projects yet"
@@ -115,7 +147,7 @@ export default function ProjectList({ className }: ProjectListProps) {
             <Button
               variant="outline"
               size="icon"
-              disabled={page === 1 || isLoading}
+              disabled={page === 1 || authLoading || isLoading}
               onClick={() => setPage(page - 1)}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -123,7 +155,7 @@ export default function ProjectList({ className }: ProjectListProps) {
             <Button
               variant="outline"
               size="icon"
-              disabled={page === totalPages || totalPages === 0 || isLoading}
+              disabled={page === totalPages || totalPages === 0 || authLoading || isLoading}
               onClick={() => setPage(page + 1)}
             >
               <ChevronRight className="h-4 w-4" />
@@ -132,7 +164,7 @@ export default function ProjectList({ className }: ProjectListProps) {
         </div>
       </div>
 
-      {isLoading ? (
+      {authLoading || isLoading ? (
         renderSkeletons()
       ) : projects.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">

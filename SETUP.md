@@ -24,7 +24,14 @@ Verifies database connectivity and table accessibility.
 ```bash
 npm run test:suite
 ```
-Runs the complete authentication and database test suite.
+Runs the consolidated authentication and database test suite with detailed reporting.
+
+### Alternative Test Commands
+```bash
+npm run test:health        # Quick health check only
+npm run test:auth          # Original auth test suite
+npm run test:comprehensive # Comprehensive test with detailed output
+```
 
 ## 📁 Organized Structure
 

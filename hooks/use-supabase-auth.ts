@@ -17,6 +17,7 @@ export function useSupabaseAuth() {
         if (error) {
           setError(error.message);
         } else {
+          console.log('Auth user fetched:', user?.id);
           setUser(user);
         }
       } catch (err) {
@@ -32,6 +33,7 @@ export function useSupabaseAuth() {
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state changed:', event, 'User ID:', session?.user?.id);
         setUser(session?.user ?? null);
       }
     );

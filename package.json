@@ -12,11 +12,9 @@
     "supabase:reset": "supabase db reset",
     "db:setup": "./scripts/setup-database.sh",
     "test:health": "node tests/health-check.js",
-    "test:suite": "node tests/auth-test-suite.js",
+    "test:suite": "node tests/consolidated-test-suite.js",
     "test:auth": "node tests/auth-test-suite.js",
-    "test:trigger": "node tests/test-trigger-fix.js",
-    "test:full": "node tests/comprehensive-test.js",
-    "test:noconfirm": "node tests/test-no-confirmation.js"
+    "test:comprehensive": "node tests/comprehensive-test.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -49,6 +47,7 @@
     "@radix-ui/react-toggle-group": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.1.2",
     "@supabase/auth-helpers-nextjs": "^0.9.0",
+    "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.39.8",
     "@types/node": "20.6.2",
     "@types/react": "18.2.22",
@@ -67,6 +66,7 @@
     "lucide-react": "^0.446.0",
     "next": "13.5.1",
     "next-themes": "^0.3.0",
+    "node-fetch": "^3.3.2",
     "postcss": "8.4.30",
     "react": "18.2.0",
     "react-day-picker": "^8.10.1",

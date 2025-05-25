@@ -33,13 +33,23 @@ export default function EditProjectPage() {
           .from("projects")
           .select("*")
           .eq("id", params.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error("Error fetching project:", error);
           toast({
             title: "Error",
             description: "Could not load the project. It may have been deleted or you don't have permission to view it.",
+            variant: "destructive",
+          });
+          router.push("/dashboard");
+          return;
+        }
+
+        if (!data) {
+          toast({
+            title: "Project Not Found",
+            description: "The project you're looking for doesn't exist or you don't have permission to view it.",
             variant: "destructive",
           });
           router.push("/dashboard");

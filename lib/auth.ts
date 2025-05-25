@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { Database } from "@/types/supabase";
 
 // Function to get authenticated user from request
 export async function getAuthenticatedUser(request: NextRequest) {
   try {
-    // Create Supabase client for authentication
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+    // Get cookies from the request
+    const cookieStore = cookies();
+    
+    // Create Supabase client with cookies for API routes
+    const supabase = createRouteHandlerClient<Database>({ 
+      cookies: () => cookieStore 
+    });
     
     // Get the authenticated user
     const { data, error } = await supabase.auth.getUser();
     
     if (error || !data?.user) {
-      return { user: null, error: error?.message || "User not authenticated" };
+      console.log("Auth error:", error?.message || "No user found");
+      return { user: null, error: error?.message || "Auth session missing!" };
     }
     
+    console.log("Auth success:", data.user.email);
     return { user: data.user, error: null };
   } catch (error) {
     console.error("Error in authentication:", error);

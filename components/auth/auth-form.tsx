@@ -179,24 +179,24 @@ export default function AuthForm() {
   };
   
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-200px)] w-full">
-      <Card className="w-full max-w-md mx-auto">
+    <div className="flex items-center justify-center w-full">
+      <Card className="w-full max-w-md mx-auto shadow-lg h-fit">
         <Tabs defaultValue={isSignUp ? "signup" : "signin"}>
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Welcome to AI Humanizer</CardTitle>
-            <CardDescription className="text-center">
+          <CardHeader className="space-y-3 pb-4">
+            <CardTitle className="text-2xl font-bold text-center">Welcome to AI Humanizer</CardTitle>
+            <CardDescription className="text-center text-base">
               Sign in to your account or create a new one
             </CardDescription>
-            <TabsList className="grid w-full grid-cols-2 mt-4">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin" className="text-base">Sign In</TabsTrigger>
+              <TabsTrigger value="signup" className="text-base">Sign Up</TabsTrigger>
             </TabsList>
           </CardHeader>
           
-          <CardContent>
+          <CardContent className="px-6">
             <TabsContent value="signin">
               <Form {...signInForm}>
-                <form onSubmit={signInForm.handleSubmit(onSignInSubmit)} className="space-y-4">
+                <form onSubmit={signInForm.handleSubmit(onSignInSubmit)} className="space-y-5">
                   <FormField
                     control={signInForm.control}
                     name="email"
@@ -227,10 +227,10 @@ export default function AuthForm() {
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
+                        <span>Signing in...</span>
                       </>
                     ) : (
-                      "Sign In"
+                      <span>Sign In</span>
                     )}
                   </Button>
                 </form>
@@ -239,7 +239,7 @@ export default function AuthForm() {
             
             <TabsContent value="signup">
               <Form {...signUpForm}>
-                <form onSubmit={signUpForm.handleSubmit(onSignUpSubmit)} className="space-y-4">
+                <form onSubmit={signUpForm.handleSubmit(onSignUpSubmit)} className="space-y-5">
                   <FormField
                     control={signUpForm.control}
                     name="email"
@@ -295,9 +295,9 @@ export default function AuthForm() {
                               </div>
                             </div>
                           )}
-                          <div className="mt-2 space-y-1">
+                          <div className="mt-3 space-y-2">
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Password requirements:</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                               <div className={`flex items-center ${field.value && field.value.length >= 8 ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                 <div className={`w-2 h-2 mr-2 rounded-full ${field.value && field.value.length >= 8 ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
                                 At least 8 characters
@@ -329,10 +329,10 @@ export default function AuthForm() {
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating account...
+                        <span>Creating account...</span>
                       </>
                     ) : (
-                      "Create Account"
+                      <span>Create Account</span>
                     )}
                   </Button>
                 </form>
@@ -340,16 +340,18 @@ export default function AuthForm() {
             </TabsContent>
           </CardContent>
           
-          <CardFooter className="text-sm text-center text-gray-500">
-            By continuing, you agree to our{" "}
-            <a href="/terms" className="text-[#4A90E2] hover:underline">
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a href="/privacy" className="text-[#4A90E2] hover:underline">
-              Privacy Policy
-            </a>
-            .
+          <CardFooter className="text-sm text-center text-gray-500 px-6 pt-4 pb-6">
+            <p className="max-w-[280px] mx-auto">
+              By continuing, you agree to our{" "}
+              <a href="/terms" className="text-[#4A90E2] hover:underline font-medium">
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a href="/privacy" className="text-[#4A90E2] hover:underline font-medium">
+                Privacy Policy
+              </a>
+              .
+            </p>
           </CardFooter>
         </Tabs>
       </Card>

@@ -1,0 +1,10 @@
+/* Dynamic height styles for text editor */
+.dynamicTextarea {
+  min-height: 400px;
+  max-height: calc(100vh - 300px);
+}
+
+.dynamicOutput {
+  min-height: 400px;
+  max-height: calc(100vh - 300px);
+}

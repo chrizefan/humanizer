@@ -9,10 +9,16 @@ scripts/
 ├── setup-database.sh          # Interactive setup script
 ├── trigger-only.sql           # Minimal migration (just adds trigger)
 ├── safe-migration.sql         # Complete safe migration
-└── complete-migration.sql     # Original complete migration
+├── complete-migration.sql     # Complete migration (alternative)
+├── check-current-status.sql   # Database status checker
+├── setup-supabase.sh         # Supabase local development setup
+├── archive/                   # Archived/legacy scripts
+└── README.md                  # This file
 
 tests/
-├── auth-test-suite.js         # Comprehensive authentication tests
+├── consolidated-test-suite.js  # Primary comprehensive test suite
+├── auth-test-suite.js         # Authentication-focused tests
+├── comprehensive-test.js      # Detailed comprehensive tests
 └── health-check.js            # Quick database health check
 ```
 
@@ -36,7 +42,9 @@ tests/
 ### Setup Scripts
 - `npm run db:setup` - Interactive database setup wizard
 - `npm run test:health` - Quick health check of database connectivity
-- `npm run test:suite` - Comprehensive authentication and database test suite
+- `npm run test:suite` - Primary comprehensive test suite (consolidated)
+- `npm run test:auth` - Authentication-focused test suite
+- `npm run test:comprehensive` - Detailed comprehensive tests
 
 ### Development Scripts
 - `npm run dev` - Start development server

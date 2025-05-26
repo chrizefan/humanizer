@@ -8,13 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Sparkles, Copy, Check, Save, Trash, Clipboard, AlertCircle, Settings } from "lucide-react";
 import { motion } from "framer-motion";
-import { humanizeText } from "@/lib/humanizer";
 import { updateUserCredits, saveProject, logUsage } from "@/lib/supabase";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useCredits } from "@/hooks/use-credits";
 import { useGuestCredits } from "@/hooks/use-guest-credits";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
+import { useHumanizer } from "@/hooks/use-humanizer";
 import { HumanizeRequest } from "@/types";
 import { cn } from "@/lib/utils";
 import styles from "./text-editor.module.css";
@@ -87,6 +87,7 @@ export default function TextEditor({ initialInput = "", initialOutput = "", titl
   const { user } = useSupabaseAuth();
   const { credits: userCredits, fetchCredits } = useCredits();
   const { guestCredits, useGuestCredit, hasGuestCredits } = useGuestCredits();
+  const { humanize } = useHumanizer();
   
   // Calculate dynamic heights based on content
   const calculateHeight = (text: string) => {
@@ -196,7 +197,7 @@ export default function TextEditor({ initialInput = "", initialOutput = "", titl
         purpose: purpose as HumanizeRequest["purpose"],
       };
       
-      const response = await humanizeText(params);
+      const response = await humanize(params);
       
       if (response.success && response.output) {
         setOutputText(response.output);

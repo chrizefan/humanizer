@@ -14,16 +14,6 @@ const getUserCredentials = () => {
   console.log(`Server-side USER_ID: ${userId ? '✓' : '✗'}`);
   console.log(`Server-side API_KEY: ${apiKey ? '✓' : '✗'}`);
   
-  // Fallback to client-side (for debugging or client-side usage)
-  if (!userId || !apiKey) {
-    console.log('Falling back to NEXT_PUBLIC_ versions...');
-    userId = process.env.NEXT_PUBLIC_UNDETECTABLE_USER_ID;
-    apiKey = process.env.NEXT_PUBLIC_UNDETECTABLE_API_KEY;
-    
-    console.log(`Client-side USER_ID: ${userId ? '✓' : '✗'}`);
-    console.log(`Client-side API_KEY: ${apiKey ? '✓' : '✗'}`);
-  }
-  
   console.log('Final credential check:', {
     hasUserId: !!userId,
     hasApiKey: !!apiKey,
@@ -131,9 +121,9 @@ export const submitToUndetectable = async (request: HumanizeRequest): Promise<Un
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': apiKey, // Corrected header name
+      'apikey': apiKey,
     },
-    body: JSON.stringify(submitRequest), // Don't include userId in body according to docs
+    body: JSON.stringify(submitRequest),
   });
 
   const responseText = await response.text();
@@ -149,6 +139,18 @@ export const submitToUndetectable = async (request: HumanizeRequest): Promise<Un
       statusText: response.statusText,
       body: responseText
     });
+    
+    // Check if it's a credit issue specifically
+    if (responseText.includes('Insufficient credits')) {
+      // Try checking credits again to see current status
+      try {
+        const currentCredits = await checkUserCredits();
+        console.log('Current credit status after failed submission:', currentCredits);
+      } catch (creditsError) {
+        console.log('Could not recheck credits:', creditsError);
+      }
+    }
+    
     throw new Error(`Undetectable AI API error: ${response.status} - ${responseText}`);
   }
 
@@ -168,10 +170,10 @@ export const getUndetectableDocument = async (documentId: string): Promise<Undet
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': apiKey, // Corrected header name
+      'apikey': apiKey,
     },
     body: JSON.stringify({
-      id: documentId // Only include id as per documentation
+      id: documentId
     }),
   });
 
@@ -248,20 +250,16 @@ export const humanizeText = async (request: HumanizeRequest): Promise<HumanizeRe
 
     console.log(`Processing text with ${request.text.length} characters`);
 
-    // Check user credits before processing
+    // Check user credits before processing (for informational purposes only)
     try {
       const creditsInfo = await checkUserCredits();
-      if (creditsInfo.credits <= 0) {
-        return {
-          success: false,
-          error: 'Insufficient credits. Please purchase more credits to continue.'
-        };
-      }
-      console.log(`Credits available: ${creditsInfo.credits} (base: ${creditsInfo.baseCredits}, boost: ${creditsInfo.boostCredits})`);
+      console.log(`Credits available: ${creditsInfo.credits} (base: ${creditsInfo.base_credits}, boost: ${creditsInfo.boost_credits})`);
     } catch (error) {
       console.warn('Could not check credits, proceeding with submission:', error);
-      // Continue with submission - let the API handle insufficient credits
     }
+
+    // Note: We proceed with submission regardless of credit check since the API
+    // will return a proper error if insufficient credits are available
 
     // Submit document to Undetectable AI
     const submitResponse = await submitToUndetectable(request);
@@ -292,6 +290,15 @@ export const humanizeText = async (request: HumanizeRequest): Promise<HumanizeRe
     };
   } catch (error) {
     console.error('Humanization error:', error);
+    
+    // Check if it's a credit-related error and provide helpful message
+    if (error instanceof Error && error.message.includes('Insufficient credits')) {
+      return {
+        success: false,
+        error: 'Insufficient credits for this text length. Try with shorter text (minimum 50 characters) or purchase more credits. Note: Longer texts require more credits than shorter ones.'
+      };
+    }
+    
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred'

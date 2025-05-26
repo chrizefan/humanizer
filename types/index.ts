@@ -91,7 +91,7 @@ export interface UndetectableDocumentResponse {
 }
 
 export interface UndetectableCreditsResponse {
-  baseCredits: number;
-  boostCredits: number;
+  base_credits: number;
+  boost_credits: number;
   credits: number;
 }

@@ -3,8 +3,8 @@
   publish = ".next"
 
 [build.environment]
-  UNDETECTABLE_USER_ID = "55ed6c2b-6bdd-44ea-b0c2-f5f788293072"
-  UNDETECTABLE_API_KEY = "eef5d057-ce45-4d80-89b4-2ffa0828e359"
+  UNDETECTABLE_USER_ID = "79b84da7-bb2a-4e36-a135-e77e0f3e5144"
+  UNDETECTABLE_API_KEY = "dd410c04-f157-4f4c-9e41-b7d125f2b339"
   USE_MOCK_HUMANIZER = "false"
   NEXT_PUBLIC_SUPABASE_URL = "https://uqmmhuqdbmoqaebohbwm.supabase.co"
   NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxbW1odXFkYm1vcWFlYm9oYndtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4NzgyMzQsImV4cCI6MjA2MzQ1NDIzNH0.FezHZRMpzhs7EdPpYxwaafYzU1sdnm7XzUFT-7x4rC0"
